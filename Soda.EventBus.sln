@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Soda.EventBus.Entityframewo
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Soda.EventBus.Local", "src\Soda.EventBus.Local\Soda.EventBus.Local.csproj", "{2FB4BCDD-6E11-403A-800D-36E04BE6C7C8}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{2835CCC7-4AEE-4201-B664-C66B18783C29}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
