@@ -5,16 +5,16 @@ using Soda.EventBus.Infrastructure;
 
 namespace Soda.EventBus.Local.Core;
 
-public interface ILocalEventBusManager<in TEvent>where TEvent : IEvent
+public interface ILocalEventBusManager<in TEvent> where TEvent : IEvent
 {
     void Publish(TEvent @event);
-    Task PublishAsync(TEvent @event) ;
-    
+    Task PublishAsync(TEvent @event);
+
     void AutoHandle();
 }
 
-public class LocalEventBusManager<TEvent>(IServiceProvider serviceProvider):ILocalEventBusManager<TEvent>
-    where TEvent: IEvent
+public class LocalEventBusManager<TEvent>(IServiceProvider serviceProvider) : ILocalEventBusManager<TEvent>
+    where TEvent : IEvent
 {
     readonly IServiceProvider _servicesProvider = serviceProvider;
 
@@ -32,7 +32,7 @@ public class LocalEventBusManager<TEvent>(IServiceProvider serviceProvider):ILoc
     {
         Cts.Cancel();
     }
-    
+
     public async Task PublishAsync(TEvent @event)
     {
         await _eventChannel.Writer.WriteAsync(@event);
@@ -40,6 +40,9 @@ public class LocalEventBusManager<TEvent>(IServiceProvider serviceProvider):ILoc
 
     public void AutoHandle()
     {
+        // 确保只启动一次
+        if (!Cts.IsCancellationRequested) return;
+
         Task.Run(async () =>
         {
             while (!Cts.IsCancellationRequested)
@@ -64,7 +67,7 @@ public class LocalEventBusManager<TEvent>(IServiceProvider serviceProvider):ILoc
         }
         catch (Exception ex)
         {
-            handler.HandleException( @event, ex);
+            handler.HandleException(@event, ex);
         }
     }
 }

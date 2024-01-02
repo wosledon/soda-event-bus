@@ -4,16 +4,16 @@ using Soda.EventBus.Infrastructure;
 
 namespace Soda.EventBus.Local.Core;
 
-public interface ILocalEventBus: IEventBus
+public interface ILocalEventBus : IEventBus
 {
 
 }
 
 public class LocalEventBus(IServiceProvider serviceProvider, LocalEventBusOptions options) : ILocalEventBus
 {
-    private  LocalEventBusPool? EventBusPool => serviceProvider.GetService<LocalEventBusPool>();
-    
-    
+    private LocalEventBusPool? EventBusPool => serviceProvider.GetService<LocalEventBusPool>();
+
+
     public void Publish<TEvent>(TEvent @event) where TEvent : IEvent
     {
         if (options.Pool)
