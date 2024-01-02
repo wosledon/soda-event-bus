@@ -17,6 +17,4 @@ public static class LocalEventBusExtensions
         services.AddSingleton<ILocalEventBus, LocalEventBus>();
         services.AddSingleton<IEventBus, LocalEventBus>();
     }
-    
-    
 }

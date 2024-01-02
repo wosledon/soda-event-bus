@@ -2,6 +2,7 @@
 using System.Runtime.CompilerServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.Extensions.DependencyInjection;
 using Soda.EventBus.Infrastructure;
 
 namespace Soda.EventBus.EntityframeworkCore;
@@ -14,8 +15,11 @@ public static class EventBusEntityframeworkCoreExtensions
 public class EventBusDbContext<TDbContext> : DbContext
     where TDbContext : DbContext
 {
-    public EventBusDbContext(DbContextOptions<TDbContext> options) : base(options)
+    private readonly IServiceProvider _serviceProvider;
+
+    public EventBusDbContext(DbContextOptions<TDbContext> options, IServiceProvider serviceProvider) : base(options)
     {
+        _serviceProvider = serviceProvider;
     }
 
     public override int SaveChanges()
@@ -30,19 +34,19 @@ public class EventBusDbContext<TDbContext> : DbContext
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        await HandleEvents();
+        await HandleEventsAsync();
 
         return await base.SaveChangesAsync(cancellationToken);
     }
 
     public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
     {
-        await HandleEvents();
+        await HandleEventsAsync();
 
         return await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
     }
 
-    private async Task HandleEvents()
+    private async Task HandleEventsAsync()
     {
         foreach (var entityEntry in ChangeTracker.Entries<AggregateRoot>())
         {
@@ -50,32 +54,28 @@ public class EventBusDbContext<TDbContext> : DbContext
             {
                 if (@event is null) break;
 
-                await HandleEvent(@event);
+                await HandleEventAsync(@event);
             }
 
             entityEntry.Entity.ClearLocalEvents();
         }
     }
 
-    private async Task HandleEvent(object @event)
+    private async Task HandleEventAsync(object @event)
     {
         var eventHandlerType = typeof(IAsyncEventHandler<>).MakeGenericType(@event.GetType());
-        var eventHandlers = this.GetService<IEnumerable<object>>()
-            .Where(s => eventHandlerType.IsAssignableFrom(s.GetType()));
+        var eventHandler = _serviceProvider.GetRequiredService(eventHandlerType);
 
-        foreach (var eventHandler in eventHandlers)
+        var method = eventHandler.GetType().GetMethod(nameof(IAsyncEventHandler<IEvent>.HandleAsync));
+        var exceptionHandleMethod = eventHandlerType.GetMethod(nameof(IAsyncEventHandler<IEvent>.HandleException));
+
+        try
         {
-            var method = eventHandler.GetType().GetMethod(nameof(IAsyncEventHandler<IEvent>.HandleAsync));
-            var exceptionHandleMethod = eventHandlerType.GetMethod(nameof(IAsyncEventHandler<IEvent>.HandleException));
-
-            try
-            {
-                await (Task)method!.Invoke(eventHandler, new[] { @event })!;
-            }
-            catch (Exception ex)
-            {
-                exceptionHandleMethod!.Invoke(eventHandler, new[] { @event, ex });
-            }
+            await (Task)method!.Invoke(eventHandler, new[] { @event })!;
+        }
+        catch (Exception ex)
+        {
+            exceptionHandleMethod!.Invoke(eventHandler, new[] { @event, ex });
         }
     }
 }
